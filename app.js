@@ -16,6 +16,7 @@ var moment = require('moment');
 var mongoose = require('mongoose');
 var repl = require("repl");
 var replHistory = require('repl.history');
+var util = require('util');
 var vm = require('vm');
 
 var mongooseMode = false; // Whether to supore Mongoose in this session
@@ -50,6 +51,12 @@ if (
 // Pre-loaded modules {{{
 global.__ = global.lodash = global.l = _;
 global.moment = moment;
+global.mrepl = {
+	inspect: {
+		depth: null,
+		colors: true,
+	},
+};
 // }}}
 
 // test. data sets {{{
@@ -74,32 +81,49 @@ global.test = {
 };
 // }}}
 
-var r = repl.start({
-	useGlobals: true,
-	useColors: true,
-	ignoreUndefined: true,
-	prompt: colors.blue("NODE> "),
-	eval: function(cmd, context, filename, next) {
-		if (!mongooseMode) {
-			var res = vm.runInContext(cmd, context, filename);
-			return next(null, res);
-		}
+var r = repl
+	.start({
+		useGlobals: true,
+		useColors: true,
+		ignoreUndefined: true,
+		prompt: colors.blue("NODE> "),
+		eval: function(cmd, context, filename, next) {
+			if (!mongooseMode) {
+				var res = vm.runInContext(cmd, context, filename);
+				return next(null, res);
+			}
 
-		try {
-			// Attempt to run the item and return the response
-			var res = vm.runInContext(cmd, context, filename);
+			try {
+				// Attempt to run the item and return the response
+				var res = vm.runInContext(cmd, context, filename);
 
-			// If its not a query we dont care - pass it to the next handler anyway
-			if (! res.mongooseCollection) return next(null, res);
+				// If its not a query we dont care - pass it to the next handler anyway
+				if (! res.mongooseCollection) return next(null, res);
 
-			// If it is a query attach to the .exec() handler and wait for a response
-			return res.setOptions({slaveOk: true}).exec(function(err, doc) {
-				return next(err, doc);
-			});
-		} catch (err) {
-			return next(err);
-		}
-		return next(null);
-	},
-})
+				// If it is a query attach to the .exec() handler and wait for a response
+				return res.setOptions({slaveOk: true})
+					// .lean(true) // Enable return as standard JS object/array - allows coloring
+					.exec(function(err, doc) {
+						doc.inspect = function() {
+							if (_.isArray(doc)) {
+								return doc.map(function(d) { return d.toJSON() });
+							} else {
+								return doc.toObject();
+							}
+						};
+						return next(err, doc);
+					});
+			} catch (err) {
+				return next(err);
+			}
+			return next(null);
+		},
+		writer: function(doc) {
+			return util.inspect(doc, global.mrepl.inspect);
+		},
+	})
+	.on('exit', function() {
+		process.exit(0);
+	})
+
 replHistory(r, process.env.HOME + '/.node_history');

@@ -10,6 +10,7 @@
 // The './models' path is assumed to contain an index.js file which will load all 'real' models as an object (typically using the `require-dir` NPM module)
 
 var _ = require('lodash');
+var babel = require('babel-core');
 var colors = require('colors');
 var fs = require('fs');
 var moment = require('moment');
@@ -87,7 +88,10 @@ var r = repl
 		useColors: true,
 		ignoreUndefined: true,
 		prompt: colors.blue("NODE> "),
-		eval: function(cmd, context, filename, next) {
+		eval: function(rawCmd, context, filename, next) {
+			// Convert from possible Babel code
+			var cmd = babel.transform(rawCmd).code;
+
 			if (!mongooseMode) {
 				var res = vm.runInContext(cmd, context, filename);
 				return next(null, res);

@@ -45,7 +45,13 @@ if (
 	require(process.cwd() + '/config/db');
 
 	global.db = require(process.cwd() + '/models');
-	console.log(colors.blue('[REPL]'), 'Loaded models:', _.keys(global.db).map(function(model) { return colors.cyan(model) }).join(', '));
+
+	if (_.isEmpty(global.db)) {
+		console.log(colors.blue('[REPL]'), colors.red('Model error'), './models/index.js loaded but module exported no models.');
+		console.log(colors.blue('[REPL]'), colors.red('Model error'), 'This usually occurs when the file loads the models but does not use module.exports');
+	} else {
+		console.log(colors.blue('[REPL]'), 'Loaded models:', _.keys(global.db).map(function(model) { return colors.cyan(model) }).join(', '));
+	}
 }
 
 

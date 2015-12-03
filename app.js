@@ -108,7 +108,7 @@ var r = repl
 				var res = vm.runInContext(cmd, context, filename);
 
 				// If its not a query we dont care - pass it to the next handler anyway
-				if (! res.mongooseCollection) return next(null, res);
+				if (!_.isObject(res) || ! res.mongooseCollection) return next(null, res);
 
 				// If it is a query attach to the .exec() handler and wait for a response
 				return res.setOptions({slaveOk: true})

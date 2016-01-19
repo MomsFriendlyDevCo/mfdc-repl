@@ -60,7 +60,7 @@ global.__ = global.lodash = global.l = _;
 global.moment = moment;
 global.mrepl = {
 	inspect: {
-		depth: null,
+		depth: 3,
 		colors: true,
 	},
 };
@@ -111,9 +111,12 @@ var r = repl
 				if (!_.isObject(res) || ! res.mongooseCollection) return next(null, res);
 
 				// If it is a query attach to the .exec() handler and wait for a response
-				return res.setOptions({slaveOk: true})
-					// .lean(true) // Enable return as standard JS object/array - allows coloring
+				return res
+					.setOptions({slaveOk: true})
 					.exec(function(err, doc) {
+						if (!_.isObject(doc)) return next(err, doc); // Nothing to do
+
+						// Glue an inspect helper to the object
 						doc.inspect = function() {
 							if (_.isArray(doc)) {
 								return doc.map(function(d) { return d.toJSON() });
@@ -121,6 +124,7 @@ var r = repl
 								return doc.toObject();
 							}
 						};
+
 						return next(err, doc);
 					});
 			} catch (err) {

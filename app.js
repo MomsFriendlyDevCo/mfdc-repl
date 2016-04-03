@@ -14,13 +14,14 @@ var babel = require('babel-core');
 var colors = require('colors');
 var fs = require('fs');
 var moment = require('moment');
+var monoxide = require('monoxide');
 var mongoose = require('mongoose');
 var repl = require("repl");
 var replHistory = require('repl.history');
 var util = require('util');
 var vm = require('vm');
 
-var mongooseMode = false; // Whether to supore Mongoose in this session
+var databaseMode = false; // Whether to supore Mongoose in this session
 
 // Change into the CWD
 process.chdir(process.cwd());
@@ -39,8 +40,8 @@ if (
 		}
 	})
 ) {
-	mongooseMode = true;
-	console.log(colors.blue('[REPL]'), '"' + colors.cyan('models') + '"', 'dir found - loading Mongoose database as', colors.cyan('db'), 'object');
+	databaseMode = true;
+	console.log(colors.blue('[REPL]'), '"' + colors.cyan('models') + '"', 'dir found - loading database as', colors.cyan('db'), 'object');
 	global.config = require(process.cwd() + '/config');
 	require(process.cwd() + '/config/db');
 
@@ -66,7 +67,7 @@ global.mrepl = {
 };
 // }}}
 
-// test. data sets {{{
+// test.* data sets {{{
 global.test = {
 	scalar: 'FooBarBaz',
 	string: 'FooBarBaz',
@@ -98,7 +99,7 @@ var r = repl
 			// Convert from possible Babel code
 			var cmd = babel.transform(rawCmd).code;
 
-			if (!mongooseMode) {
+			if (!databaseMode) {
 				var res = vm.runInContext(cmd, context, filename);
 				return next(null, res);
 			}
@@ -107,19 +108,25 @@ var r = repl
 				// Attempt to run the item and return the response
 				var res = vm.runInContext(cmd, context, filename);
 
-				// If its not a query we dont care - pass it to the next handler anyway
-				if (!_.isObject(res) || ! res.mongooseCollection) return next(null, res);
+				var modelType =
+					(res instanceof mongoose.Collection) ? 'mongoose' :
+					(res instanceof monoxide.monoxideModel) ? 'monoxide' :
+					'none';
+
+				if (!modelType) return next(null, res); // Nothing to do - pass to next handler
+
+				// If its Mongoose set slaveOK: true - otherwise we don't get a return
+				if (modelType == 'mongoose') res.setOptions({slaveOk: true});
 
 				// If it is a query attach to the .exec() handler and wait for a response
 				return res
-					.setOptions({slaveOk: true})
 					.exec(function(err, doc) {
 						if (!_.isObject(doc)) return next(err, doc); // Nothing to do
 
 						// Glue an inspect helper to the object
 						doc.inspect = function() {
 							if (_.isArray(doc)) {
-								return doc.map(function(d) { return d.toJSON() });
+								return doc.map(function(d) { return d.toObject() });
 							} else {
 								return doc.toObject();
 							}

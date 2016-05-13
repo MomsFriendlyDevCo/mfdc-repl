@@ -110,7 +110,8 @@ var r = repl
 
 				var modelType =
 					(res instanceof mongoose.Collection) ? 'mongoose' :
-					(res instanceof monoxide.monoxideModel) ? 'monoxide' :
+					(res instanceof monoxide.queryBuilder) ? 'monoxide' :
+					(res.$MONOXIDE) ? 'monoxide' :
 					'none';
 
 				if (!modelType) return next(null, res); // Nothing to do - pass to next handler
@@ -119,8 +120,8 @@ var r = repl
 				if (modelType == 'mongoose') res.setOptions({slaveOk: true});
 
 				// If it is a query attach to the .exec() handler and wait for a response
-				return res
-					.exec(function(err, doc) {
+				if (modelType == 'mongoose' || modelType == 'monoxide') {
+					res.exec(function(err, doc) {
 						if (!_.isObject(doc)) return next(err, doc); // Nothing to do
 
 						// Glue an inspect helper to the object
@@ -134,10 +135,13 @@ var r = repl
 
 						return next(err, doc);
 					});
+				} else {
+					return next(null, res);
+				}
+
 			} catch (err) {
 				return next(err);
 			}
-			return next(null);
 		},
 		writer: function(doc) {
 			return util.inspect(doc, global.mrepl.inspect);

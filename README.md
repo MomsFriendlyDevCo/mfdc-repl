@@ -2,14 +2,15 @@ MFDC-REPL
 =========
 [MFDC's](http://mfdc.biz) own internal REPL command line interface.
 
+This project provides the executable `mrepl` which has the following functionality over regular REPL:
 
-This project provides the executable `mrepl` which provides the following functionality over regular REPL:
+* **Babel pre-compiler** (`babel` plugin) - All code is automatically compiled via [BabelJS](http://babeljs.io) before it is run - making things like arrow functions available on older Node releases
+* **Lodash** (`lodash` plugin) - lodash is provided as `lodash`, `l` and `__`
+* **Moment** (`moment` plugin) - moment is provided as `moment`
+* **Mongoose project support** (`mongoose` plugin) - If the files `./config/index.js`, `./config/db.js` and `./models/index.js` are found they are loaded in that order (with `./models/index.js` expected to return an object containing the available compiled schemas. Models are then provided in the `db` object. e.g. `db.users.find()` will return all users.
+* **STDIN slurping** (`stdin` plugin) - Any piped input into the program is provied as the `input` variable. Automatic decoding of the variable will be attempted by `JSON.parse()` otherwise it will be a raw string.
 
-* **Babel pre-compiler** - All code is automatically compiled via [BabelJS](http://babeljs.io) before it is run - making things like arrow functions available on older Node releases
-* **REPL inspection depth** - By default the inspection depth is infinite (rather than the usual `2`). Override this by setting `mrepl.inspect.depth`
-* **Module: Lodash** - lodash is provided as `lodash`, `l` and `__`
-* **Module: Moment** - moment is provided as `moment`
-* **Database Mode** - If the files `./config/index.js`, `./config/db.js` and `./models/index.js` are found they are loaded in that order (with `./models/index.js` expected to return an object containing the available compiled schemas. Models are then provided in the `db` object. e.g. `db.users.find()` will return all users. MFDC-REPL currently supports both [MongooseJS](http://mongoosejs.com) and [Monoxide](https://github.com/hash-bang/Monoxide) models.
+
 
 
 Installation

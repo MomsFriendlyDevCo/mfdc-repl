@@ -6,6 +6,7 @@ var fs = require('fs');
 var glob = require('glob');
 var program = require('commander');
 var repl = require('repl');
+var ttys = require('ttys');
 var vm = require('vm');
 
 program
@@ -74,6 +75,11 @@ async()
 
 		var r = repl
 			.start({
+				// BUGFIX: If we are reading from a pipe we need ttys to provide us a user terminal rather than trust process.std{in,out} {{{
+				input: ttys.stdin,
+				output: ttys.stdout,
+				terminal: true,
+				// }}}
 				useGlobals: true,
 				useColors: program.color,
 				prompt: colors.blue('NODE> '),

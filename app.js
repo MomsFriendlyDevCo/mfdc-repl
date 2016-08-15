@@ -1,154 +1,116 @@
-#!/usr/bin/env node
-// Usage: mrepl
-//
-//  or via pipe: echo 'console.log("Hello World")' | mrepl
-//
-// Load a NodeJS REPL session with some handy modules already loaded
-//
-// If the following files are found `mrepl` loads in Mongoose mode - ./models.index (assumed to provide back an object of all available models), ./config/index.js, ./config/db.js
-// This module also attempts to locate a 'models' directory in the current path - if its found Mongoose is booted and the database becomes available as the 'db' object
-// The './models' path is assumed to contain an index.js file which will load all 'real' models as an object (typically using the `require-dir` NPM module)
-
+#!/usr/bin/node
 var _ = require('lodash');
-var babel = require('babel-core');
-var colors = require('colors');
+var async = require('async-chainable');
+var colors = require('chalk');
 var fs = require('fs');
-var moment = require('moment');
-var monoxide = require('monoxide');
-var mongoose = require('mongoose');
-var repl = require("repl");
-var replHistory = require('repl.history');
-var util = require('util');
+var glob = require('glob');
+var program = require('commander');
+var repl = require('repl');
 var vm = require('vm');
 
-var databaseMode = false; // Whether to supore Mongoose in this session
+program
+	.version(require('./package.json').version)
+	.usage('[options]')
+	.option('-v, --verbose', 'Be verbose. Specify multiple times for increasing verbosity', function(i, v) { return v + 1 }, 0)
+	.option('--no-color', 'Force disable color')
+	.option('--plugin [glob]', 'Provide glob path for plugins (can be specified multiple times)', function(i, v) { v.push(i); return v }, [])
+	.parse(process.argv);
 
-// Change into the CWD
-process.chdir(process.cwd());
+// Apply option defaults {{{
+if (!program.plugin || !program.plugin.length) program.plugin = [__dirname + '/plugins/*.js'];
+// }}}
+// Apply .repl meta structure {{{
+program.repl = {
+	globals: {},
+	eval: [],
+};
+// }}}
 
-if (
-	[
-		'./models/index.js',
-		'./config/index.js',
-		'./config/db.js',
-	].every(function(file) {
+async()
+	// Load plugins {{{
+	.then('plugins', function(next) {
+		var plugins = [];
+		async()
+			.forEach(program.plugin, function(next, dir) {
+				if (program.verbose >= 1) console.log(colors.blue('[Plugin Scan]'), dir);
+				glob(dir, function(err, files) {
+					if (err) next(err);
+					plugins.push(files);
+					next();
+				});
+			})
+			.end(function(err) {
+				if (err) return next(err);
+				next(null, _.flatten(plugins));
+			});
+	})
+	.forEach('plugins', function(next, pluginFile) {
+		if (program.verbose >= 1) console.log(colors.blue('[Plugin]'), pluginFile);
 		try {
-			fs.statSync(file);
-			return true;
+			var mod = require(pluginFile);
+			mod(next, program);
 		} catch (e) {
-			return false;
+			next('Error processing "' + pluginFile + '" - ' + e.toString());
 		}
 	})
-) {
-	databaseMode = true;
-	console.log(colors.blue('[REPL]'), '"' + colors.cyan('models') + '"', 'dir found - loading database as', colors.cyan('db'), 'object');
-	global.config = require(process.cwd() + '/config');
-	require(process.cwd() + '/config/db');
+	// }}}
+	// Run repl {{{
+	.then(function(next) {
+		if (program.verbose >= 2) {
+			console.log(colors.blue('[repl.globals]'), _.keys(program.repl.globals).map(function(i) { return colors.cyan(i) }).join(', '));
+		}
 
-	global.db = require(process.cwd() + '/models');
+		// Move all program.repl.globals into global {{{
+		_.extend(global, program.repl.globals);
+		// }}}
 
-	if (_.isEmpty(global.db)) {
-		console.log(colors.blue('[REPL]'), colors.red('Model error'), './models/index.js loaded but module exported no models.');
-		console.log(colors.blue('[REPL]'), colors.red('Model error'), 'This usually occurs when the file loads the models but does not use module.exports');
-	} else {
-		console.log(colors.blue('[REPL]'), 'Loaded models:', _.keys(global.db).map(function(model) { return colors.cyan(model) }).join(', '));
-	}
-}
+		// Add blank line if verbose - so there is some spacing {{{
+		if (program.verbose >= 1) console.log();
+		// }}}
 
-
-// Pre-loaded modules {{{
-global.__ = global.lodash = global.l = _;
-global.moment = moment;
-global.mrepl = {
-	inspect: {
-		depth: 3,
-		colors: true,
-	},
-};
-// }}}
-
-// test.* data sets {{{
-global.test = {
-	scalar: 'FooBarBaz',
-	string: 'FooBarBaz',
-	number: 123,
-	date: new Date(),
-	collection: [
-		{id: 'foo', name: 'Mr Foo', age: 45},
-		{id: 'bar', name: 'Ms Bar', age: 25},
-		{id: 'baz', name: 'Mrs Baz', age: 51},
-		{id: 'quz', name: 'Mr Quz', age: 18},
-	],
-	object: {
-		foo: 'one',
-		bar: 'bar',
-		baz: 'baz',
-		quz: 'quz',
-	},
-	array: ['foo', 'bar', 'baz', 'quz'],
-};
-// }}}
-
-var r = repl
-	.start({
-		useGlobals: true,
-		useColors: true,
-		ignoreUndefined: true,
-		prompt: colors.blue("NODE> "),
-		eval: function(rawCmd, context, filename, next) {
-			// Convert from possible Babel code
-			var cmd = babel.transform(rawCmd).code;
-
-			if (!databaseMode) {
-				var res = vm.runInContext(cmd, context, filename);
-				return next(null, res);
-			}
-
-			try {
-				// Attempt to run the item and return the response
-				var res = vm.runInContext(cmd, context, filename);
-
-				var modelType =
-					(res instanceof mongoose.Collection) ? 'mongoose' :
-					(res instanceof monoxide.queryBuilder) ? 'monoxide' :
-					(res.$MONOXIDE) ? 'monoxide' :
-					'none';
-
-				if (!modelType) return next(null, res); // Nothing to do - pass to next handler
-
-				// If its Mongoose set slaveOK: true - otherwise we don't get a return
-				if (modelType == 'mongoose') res.setOptions({slaveOk: true});
-
-				// If it is a query attach to the .exec() handler and wait for a response
-				if (modelType == 'mongoose' || modelType == 'monoxide') {
-					res.exec(function(err, doc) {
-						if (!_.isObject(doc)) return next(err, doc); // Nothing to do
-
-						// Glue an inspect helper to the object
-						doc.inspect = function() {
-							if (_.isArray(doc)) {
-								return doc.map(function(d) { return d.toObject() });
-							} else {
-								return doc.toObject();
+		var r = repl
+			.start({
+				useGlobals: true,
+				useColors: program.color,
+				prompt: colors.blue('NODE> '),
+				eval: function(cmd, context, filename, finish) {
+					async()
+						.then('result', function(next) {
+							try {
+								var result = vm.runInContext(cmd, context, filename);
+								next(null, result);
+							} catch (e) {
+								next(e);
 							}
-						};
-
-						return next(err, doc);
-					});
-				} else {
-					return next(null, res);
-				}
-
-			} catch (err) {
-				return next(err);
-			}
-		},
-		writer: function(doc) {
-			return util.inspect(doc, global.mrepl.inspect);
-		},
+						})
+						.limit(1)
+						.forEach(program.repl.eval, function(next, eval) {
+							var task = this;
+							// Call each eval function allowing it to mutate the result before its passed to the next
+							eval(function(err, newResult) {
+								if (err) return next(err);
+								task.result = newResult;
+								next();
+							}, task.result);
+						})
+						.end(function(err) {
+							finish(err, this.result);
+						});
+				},
+			})
+			.on('exit', function() {
+				console.log('EXIT!');
+				next();
+			});
 	})
-	.on('exit', function() {
-		process.exit(0);
-	})
-
-replHistory(r, process.env.HOME + '/.node_history');
+	// }}}
+	// End {{{
+	.end(function(err) {
+		if (err) {
+			console.log(colors.red('Error'), err.toString());
+			process.exit(1);
+		} else {
+			process.exit(0);
+		}
+	});
+	// }}}

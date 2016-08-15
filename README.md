@@ -21,3 +21,22 @@ Simply run the following:
 You should now be able to run the REPL interface with:
 
 	mrepl
+
+
+Plugins
+=======
+Plugins are provided in the `plugins/` folder within the main script file.
+
+Each plugin is a simple JavaScript file which is expected to expose a function taking a callback and the main `app` argument. Each plugin can decorate the properties of the program and return the callback when finished.
+
+
+Some usefully exposed properties:
+
+| Property path      | Type   | Default         | Description                                                           |
+|--------------------|--------|-----------------|-----------------------------------------------------------------------|
+| `app`              | Object | Complex         | The main application object - an instance of a `commander` definition |
+| `app.verbose`      | Number | 0               | Verbosity level                                                       |
+| `app.plugin`       | Array  | `['./plugins']` | Globs to search for plugins                                           |
+| `app.repl`         | Object | Complex         | Repl options when creating the interface                              |
+| `app.repl.globals` | Object | `{}`            | Any exported globals that should be available inside the REPL session |
+| `app.repl.eval`    | Array  | `[]`            | Array of evaluation functions to run. Each Eval is run as a compose pipeline with the final output being returned to the REPL session |

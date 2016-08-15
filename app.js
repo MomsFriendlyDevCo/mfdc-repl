@@ -48,7 +48,11 @@ async()
 		if (program.verbose >= 1) console.log(colors.blue('[Plugin]'), pluginFile);
 		try {
 			var mod = require(pluginFile);
-			mod(next, program);
+			mod(function(err) {
+				// Ignore errors from plugins (only print if verbose >0)
+				if (err && program.verbose >= 1) console.log(colors.blue('[Plugin ' + pluginFile + ']'), colors.red('Error'), err.toString());
+				next();
+			}, program);
 		} catch (e) {
 			next('Error processing "' + pluginFile + '" - ' + e.toString());
 		}

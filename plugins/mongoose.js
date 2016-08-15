@@ -20,7 +20,7 @@ module.exports = function(finish, app) {
 		.forEach(settings.dbGlobs, function(next, dbGlob) {
 			glob(dbGlob, function(err, files) {
 				if (err) return next(err);
-				if (!files.length) return next('INVALID');
+				if (!files.length) return next('Not a Mongoose compatible project');
 				files.forEach(function(file) {
 					if (app.verbose >= 2) console.log(colors.blue('[Mongoose]'), 'Load', colors.cyan(file));
 					try {

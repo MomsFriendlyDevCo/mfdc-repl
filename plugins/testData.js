@@ -1,3 +1,12 @@
+/**
+* Test data plugin for mfdc-repl
+*
+* Load various bits of test data into the `test` global
+*
+* @author Matt Carter <m@ttcarter.com>
+* @date 2016-08-15
+*/
+
 module.exports = function(finish, app) {
 	app.repl.globals.test = {
 		scalar: 'FooBarBaz',

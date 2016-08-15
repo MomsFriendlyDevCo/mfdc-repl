@@ -1,3 +1,14 @@
+/**
+* Mongoose plugin for mfdc-repl
+*
+* Attempt to load a Mongoose environment and provide the `db` global
+*
+* This plugin works by checking for the existance of and then evaluating all globs in `app.pluginOptions.dbGlobs` If that succeeds the `db` object is set to the module export of the `app.pluginOptions.dbMap` module
+*
+* @author Matt Carter <m@ttcarter.com>
+* @date 2016-08-15
+*/
+
 var _ = require('lodash');
 var async = require('async-chainable');
 var colors = require('chalk');

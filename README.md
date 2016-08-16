@@ -9,6 +9,7 @@ This project provides the executable `mrepl` which has the following functionali
 * **Moment** (`moment` plugin) - moment is provided as `moment`
 * **Mongoose project support** (`mongoose` plugin) - If the files `./config/index.js`, `./config/db.js` and `./models/index.js` are found they are loaded in that order (with `./models/index.js` expected to return an object containing the available compiled schemas. Models are then provided in the `db` object. e.g. `db.users.find()` will return all users.
 * **STDIN slurping** (`stdin` plugin) - Any piped input into the program is provied as the `input` variable. Automatic decoding of the variable will be attempted by `JSON.parse()` otherwise it will be a raw string.
+* **History saving** - History saing is enabled by default
 
 
 

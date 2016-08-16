@@ -6,6 +6,7 @@ var fs = require('fs');
 var glob = require('glob');
 var program = require('commander');
 var repl = require('repl');
+var replHistory = require('repl.history');
 var ttys = require('ttys');
 var vm = require('vm');
 
@@ -112,6 +113,8 @@ async()
 				console.log('EXIT!');
 				next();
 			});
+
+		replHistory(r, process.env.HOME + '/.n_repl_history');
 	})
 	// }}}
 	// End {{{

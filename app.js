@@ -24,6 +24,7 @@ if (!program.plugin || !program.plugin.length) program.plugin = [__dirname + '/p
 // Apply .repl meta structure {{{
 program.repl = {
 	globals: {},
+	rewriter: [],
 	eval: [],
 };
 // }}}
@@ -86,6 +87,14 @@ async()
 				prompt: colors.blue('NODE> '),
 				eval: function(cmd, context, filename, finish) {
 					async()
+						.forEach(program.repl.rewriter, function(next, func) {
+							// Call each rewriter function as a compose operation allowing it to mutate the result before its passed to the next
+							func(function(err, newCommand) {
+								if (err) return next(err);
+								cmd = newCommand;
+								next();
+							}, cmd);
+						})
 						.then('result', function(next) {
 							try {
 								var result = vm.runInContext(cmd, context, filename);
@@ -95,10 +104,10 @@ async()
 							}
 						})
 						.limit(1)
-						.forEach(program.repl.eval, function(next, eval) {
+						.forEach(program.repl.eval, function(next, func) {
 							var task = this;
-							// Call each eval function allowing it to mutate the result before its passed to the next
-							eval(function(err, newResult) {
+							// Call each eval function as a compose operation allowing it to mutate the result before its passed to the next
+							func(function(err, newResult) {
 								if (err) return next(err);
 								task.result = newResult;
 								next();

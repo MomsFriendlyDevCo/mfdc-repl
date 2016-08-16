@@ -1,9 +1,10 @@
 /**
-* Mongoose plugin for mfdc-repl
+* Mongoose-Crux plugin for mfdc-repl
 *
-* Attempt to load a Mongoose environment and provide the `db` global
+* Attempt to load a Mongoose environment and provide the `db` global.
+* The project should correspond to the MFDC/Crux standard - https://github.com/MomsFriendlyDevCo/Crux
 *
-* This plugin works by checking for the existance of and then evaluating all globs in `app.pluginOptions.dbGlobs` If that succeeds the `db` object is set to the module export of the `app.pluginOptions.dbMap` module
+* This plugin works by checking for the existence of and then evaluating all globs in `app.pluginOptions.dbGlobs` If that succeeds the `db` object is set to the module export of the `app.pluginOptions.dbMap` module
 *
 * @author Matt Carter <m@ttcarter.com>
 * @date 2016-08-15
@@ -31,9 +32,9 @@ module.exports = function(finish, app) {
 		.forEach(settings.dbGlobs, function(next, dbGlob) {
 			glob(dbGlob, function(err, files) {
 				if (err) return next(err);
-				if (!files.length) return next('Not a Mongoose compatible project');
+				if (!files.length) return next('Not a Mongoose-Crux compatible project');
 				files.forEach(function(file) {
-					if (app.verbose >= 2) console.log(colors.blue('[Mongoose]'), 'Load', colors.cyan(file));
+					if (app.verbose >= 2) console.log(colors.blue('[Mongoose-Crux]'), 'Load', colors.cyan(file));
 					try {
 						require(fspath.resolve(file));
 						next();
@@ -48,7 +49,7 @@ module.exports = function(finish, app) {
 			app.repl.globals.db = require(fspath.resolve(settings.dbMap));
 
 			// Output the loaded modules
-			console.log(colors.blue('[Mongoose]'), 'DB models loaded:', _.keys(app.repl.globals.db).map(function(i) { return colors.cyan(i) }).join(', '))
+			console.log(colors.blue('[Mongoose-Crux]'), 'DB models loaded:', _.keys(app.repl.globals.db).map(function(i) { return colors.cyan(i) }).join(', '))
 
 			// Setup the resolver to return the results of the eval
 			app.repl.eval.push(function(next, res) {

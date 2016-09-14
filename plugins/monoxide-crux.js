@@ -14,40 +14,54 @@ var _ = require('lodash');
 var async = require('async-chainable');
 var colors = require('chalk');
 var glob = require('glob');
+var fs = require('fs');
 var fspath = require('path');
 var mongoose = require('mongoose');
 
 module.exports = function(finish, app) {
 	var settings = _.defaults(app.pluginOptions, {
-		dbGlobs: [ // Files that should be run before we can load the database - if any are missing the processing stops
-			'config/index.js',
-			'config/db.js',
-			'models/index.js',
-		],
+		configMap: 'config/index.js',
+		dbLoader: 'config/db.js',
 		dbMap: 'models/index.js', // File to use to determine the contents of `db` (should also be in dbGlobs so we can determine it exists)
 	});
 
 	async()
-		.limit(1)
-		.forEach(settings.dbGlobs, function(next, dbGlob) {
-			glob(dbGlob, function(err, files) {
-				if (err) return next(err);
-				if (!files.length) return next('Not a Mongoose-Crux compatible project');
-				files.forEach(function(file) {
-					if (app.verbose >= 2) console.log(colors.blue('[Mongoose-Crux]'), 'Load', colors.cyan(file));
-					try {
-						require(fspath.resolve(file));
-						next();
-					} catch(e) {
-						next(err);
-					}
-				});
+		// Check if the setup is actually a Crux project {{{
+		.forEach([settings.configMap, settings.dbMap], function(next, file) {
+			fs.stat(fspath.resolve(file), function(err) {
+				if (err) return next(file + ' not found. Probably not a crux projext');
+				next();
 			});
 		})
+		// }}}
+		// Load global config {{{
 		.then(function(next) {
-			// Setup global DB mapping
-			app.repl.globals.db = require(fspath.resolve(settings.dbMap));
-
+			global.config = require(fspath.resolve(settings.configMap));
+			next();
+		})
+		// }}}
+		// Load DB file {{{
+		.then(function(next) {
+			try {
+				require(fspath.resolve(settings.dbLoader));
+				next();
+			} catch (e) {
+				next(e);
+			}
+		})
+		// }}}
+		// Load Model map {{{
+		.then(function(next) {
+			try {
+				app.repl.globals.db = require(fspath.resolve(settings.dbMap));
+				next();
+			} catch (e) {
+				next(e);
+			}
+		})
+		// }}}
+		// Setup REPL {{{
+		.then(function(next) {
 			// Output the loaded modules
 			console.log(colors.blue('[Mongoose-Crux]'), 'DB models loaded:', _.keys(app.repl.globals.db).map(function(i) { return colors.cyan(i) }).join(', '))
 
@@ -55,10 +69,7 @@ module.exports = function(finish, app) {
 			app.repl.eval.push(function(next, res) {
 				try {
 					// If its not a DB return - exit
-					if (!_.hasIn(res, 'setOptions') || !_.hasIn(res, 'exec')) return next(null, res);
-
-					// Set slaveOK: true - otherwise we don't get a return
-					res.setOptions({slaveOk: true});
+					if (!_.hasIn(res, '$MONOXIDE') || !_.hasIn(res, 'exec')) return next(null, res);
 
 					// If it is a query attach to the .exec() handler and wait for a response
 					res.exec(function(err, doc) {
@@ -82,5 +93,8 @@ module.exports = function(finish, app) {
 
 			next();
 		})
+		// }}}
+		// End {{{
 		.end(finish)
+		// }}}
 };

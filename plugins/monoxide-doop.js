@@ -19,45 +19,41 @@ var monoxide = require('monoxide');
 
 module.exports = function(finish, app) {
 	var settings = _.defaults(app.pluginOptions, {
-		configMap: 'server/config/index.conf.js', // Map app.config to the return of this file
-		dbMap: 'server/units/db/index.js', // File to use to determine the contents of `db`
+		appLoader: 'units/core/backend.js',
+		dbLoader: 'units/db/loader.js', // Main DB loader module
 	});
 
 	async()
 		// Check that all files exist {{{
 		.forEach([
-			settings.configMap,
-			settings.dbMap,
+			settings.appLoader,
+			settings.dbLoader,
 		], function(next, fileGlob) {
 			glob(fileGlob, function(err, files) {
 				if (err) return next(err);
 				if (!files.length) return next('Not a Monoxide-Doop compatible project');
-				files.forEach(function(file) {
-					if (app.verbose >= 2) console.log(colors.blue('[Monoxide-Doop]'), 'Load', colors.cyan(file));
-					try {
-						require(fspath.resolve(file));
-						next();
-					} catch(e) {
-						next(err);
-					}
-				});
+				next();
 			});
 		})
 		// }}}
 		// Setup global.app sudo-structure {{{
 		.then(function(next) {
-			global.app = {
-				config: require(fspath.resolve(settings.configMap)),
-			};
-			next();
+			try {
+				if (app.verbose >= 2) console.log(colors.blue('[Monoxide-Doop]'), 'Load', colors.cyan(settings.appLoader));
+				require(fspath.resolve(settings.appLoader));
+				next();
+			} catch (e) {
+				next(e);
+			}
 		})
 		// }}}
 		// Setup global DB mapping as an async callback {{{
 		.then(function(next) {
-			require(fspath.resolve(settings.dbMap))()
-				.on('model', function(path) {
-					if (app.verbose >= 2) console.log(colors.blue('[Monoxide-Doop]'), 'Load model', colors.cyan(fspath.relative(global.app.config.paths.root, path)));
-				})
+			if (!_.has(global.app, 'config.mongo.uri')) return next('No app.config.mongo.uri structure present');
+
+			require(fspath.resolve(settings.dbLoader))()
+				.on('start', () => { if (app.verbose) console.log(colors.blue('[Monoxide-Doop]'), 'Connecting to', colors.cyan(global.app.config.mongo.uri)) })
+				.on('model', path => { if (app.verbose >= 2) console.log(colors.blue('[Monoxide-Doop]'), 'Load model', colors.cyan(fspath.relative(global.app.config.paths.root, path)))})
 				.on('error', next)
 				.on('end', function(models) {
 					app.repl.globals.db = models;

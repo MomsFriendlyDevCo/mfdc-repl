@@ -57,7 +57,7 @@ module.exports = function(finish, app) {
 				.on('error', next)
 				.on('end', function(models) {
 					app.repl.globals.db = models;
-					app.repl.globals.monoxide = monoxide;
+					app.repl.globals.o = app.repl.globals.monoxide = monoxide;
 					next();
 				});
 		})

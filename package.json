@@ -1,6 +1,6 @@
 {
   "name": "mfdc-repl",
-  "version": "2.0.3",
+  "version": "2.1.0",
   "description": "Internal MFDC REPL CLI",
   "main": "app.js",
   "bin": {
@@ -22,16 +22,16 @@
   },
   "homepage": "https://github.com/MomsFriendlyDevCo/mfdc-repl#readme",
   "dependencies": {
-    "async-chainable": "^1.8.1",
-    "babel-core": "^6.14.0",
+    "async-chainable": "^2.3.1",
+    "babel-core": "^6.24.0",
     "chalk": "^1.1.3",
     "commander": "^2.9.0",
-    "glob": "^7.0.6",
-    "lodash": "^4.15.0",
-    "moment": "^2.15.0",
+    "glob": "^7.1.1",
+    "lodash": "^4.17.4",
+    "moment": "^2.17.1",
     "mongoose": "~4.5.10",
-    "monoxide": "0.0.75",
-    "repl.history": "^0.1.3",
+    "monoxide": "0.0.80",
+    "repl.history": "^0.1.4",
     "ttys": "0.0.3"
   }
 }

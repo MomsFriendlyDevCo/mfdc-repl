@@ -34,11 +34,13 @@ Each plugin is a simple JavaScript file which is expected to expose a function t
 
 Some usefully exposed properties:
 
-| Property path      | Type   | Default         | Description                                                           |
-|--------------------|--------|-----------------|-----------------------------------------------------------------------|
-| `app`              | Object | Complex         | The main application object - an instance of a `commander` definition |
-| `app.verbose`      | Number | 0               | Verbosity level                                                       |
-| `app.plugin`       | Array  | `['./plugins']` | Globs to search for plugins                                           |
-| `app.repl`         | Object | Complex         | Repl options when creating the interface                              |
-| `app.repl.globals` | Object | `{}`            | Any exported globals that should be available inside the REPL session |
-| `app.repl.eval`    | Array  | `[]`            | Array of evaluation functions to run. Each Eval is run as a compose pipeline with the final output being returned to the REPL session |
+| Property path        | Type    | Default         | Description                                                           |
+|----------------------|---------|-----------------|-----------------------------------------------------------------------|
+| `app`                | Object  | Complex         | The main application object - an instance of a `commander` definition |
+| `app.verbose`        | Number  | 0               | Verbosity level                                                       |
+| `app.plugin`         | Array   | `['./plugins']` | Globs to search for plugins                                           |
+| `app.repl`           | Object  | Complex         | Repl options when creating the interface                              |
+| `app.repl.globals`   | Object  | `{}`            | Any exported globals that should be available inside the REPL session |
+| `app.repl.eval`      | Array   | `[]`            | Array of evaluation functions to run. Each Eval is run as a compose pipeline with the final output being returned to the REPL session |
+| `inspect.depth`      | Number  | 2               | How deeply to examine objects when printing results to the console    |
+| `inspect.colors`     | Boolean | `true`          | Whether colors are enabled when printing results to the console       |

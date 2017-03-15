@@ -9,6 +9,7 @@ var repl = require('repl');
 var replHistory = require('repl.history');
 var ttys = require('ttys');
 var vm = require('vm');
+var util = require('util');
 
 program
 	.version(require('./package.json').version)
@@ -23,7 +24,12 @@ if (!program.plugin || !program.plugin.length) program.plugin = [__dirname + '/p
 // }}}
 // Apply .repl meta structure {{{
 program.repl = {
-	globals: {},
+	globals: {
+		inspect: {
+			depth: 2,
+			colors: true,
+		},
+	},
 	rewriter: [],
 	eval: [],
 };
@@ -116,6 +122,9 @@ async()
 						.end(function(err) {
 							finish(err, this.result);
 						});
+				},
+				writer: function(doc) {
+					return util.inspect(doc, program.repl.globals.inspect);
 				},
 			})
 			.on('exit', function() {

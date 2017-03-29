@@ -18,7 +18,7 @@ Installation
 ------------
 Simply run the following:
 
-	sudo npm install -g mfdc-repl
+	sudo npm install -g @momsfriendlydevco/repl
 
 You should now be able to run the REPL interface with:
 

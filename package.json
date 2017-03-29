@@ -1,7 +1,7 @@
 {
-  "name": "mfdc-repl",
+  "name": "@momsfriendlydevco/repl",
   "version": "2.1.0",
-  "description": "Internal MFDC REPL CLI",
+  "description": "MFDC REPL CLI",
   "main": "app.js",
   "bin": {
     "mrepl": "./app.js"

@@ -1,6 +1,6 @@
 {
   "name": "@momsfriendlydevco/repl",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "MFDC REPL CLI",
   "main": "app.js",
   "bin": {

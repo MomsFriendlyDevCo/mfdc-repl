@@ -40,6 +40,10 @@ async()
 	.then('plugins', function(next) {
 		var plugins = [];
 		async()
+			.then(function(next) {
+				if (program.verbose >= 2) console.log(colors.blue('[Plugin Scan]'), 'Loading plugins', program.plugin.join(', '));
+				next();
+			})
 			.forEach(program.plugin, function(next, dir) {
 				if (program.verbose >= 1) console.log(colors.blue('[Plugin Scan]'), dir);
 				glob(dir, function(err, files) {
@@ -56,13 +60,16 @@ async()
 	.forEach('plugins', function(next, pluginFile) {
 		if (program.verbose >= 1) console.log(colors.blue('[Plugin]'), pluginFile);
 		try {
+			if (program.verbose >= 3) console.log(colors.blue('[Plugin]'), colors.green('Start'), pluginFile);
 			var mod = require(pluginFile);
 			mod(function(err) {
 				// Ignore errors from plugins (only print if verbose >0)
-				if (err && program.verbose >= 1) console.log(colors.blue('[Plugin ' + pluginFile + ']'), colors.red('Error'), err.toString());
+				if (program.verbose >= 3) console.log(colors.blue('[Plugin]'), colors.red('End'), pluginFile, colors.red('Err Return'), err);
+				if (err && program.verbose >= 1) console.log(colors.blue('[Plugin ' + pluginFile + ']'), colors.red('Error'), err);
 				next();
 			}, program);
 		} catch (e) {
+			if (program.verbose >= 3) console.log(colors.blue('[Plugin]'), colors.red('CAUGHT ERR'), e);
 			next('Error processing "' + pluginFile + '" - ' + e.toString());
 		}
 	})

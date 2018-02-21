@@ -13,7 +13,10 @@ var colors = require('chalk');
 var tty = require('tty');
 
 module.exports = function(finish, app) {
-	if (tty.isatty(process.stdin)) return finish(); // Not a pipe
+	if (process.stdin.isTTY) {
+		if (app.verbose >= 1) console.log(colors.blue('[Stdin]'), 'STDIN is not a pipe - skipping');
+		return finish(); // Not a pipe
+	}
 
 	var slurped = '';
 	process.stdin

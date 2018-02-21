@@ -20,7 +20,7 @@ var monoxide = require('monoxide');
 module.exports = function(finish, app) {
 	var settings = _.defaults(app.pluginOptions, {
 		appLoader: 'units/core/backend.js',
-		dbLoader: 'units/db/loader.js', // Main DB loader module
+		dbLoader: 'units/core.db/loader.js', // Main DB loader module
 	});
 
 	async()
